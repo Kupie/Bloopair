@@ -33,7 +33,7 @@ namespace
 
 int ds3ReadBDA(uint32_t handle, uint8_t* outBDA)
 {
-    __attribute__ ((aligned (0x20))) uint8_t buf[17]{};
+    __attribute__ ((aligned (0x20))) uint8_t buf[18]{};
     int res = HIDGetReport(handle, HID_REPORT_FEATURE, 0xf2, buf, sizeof(buf), nullptr, nullptr);
     if (res >= 0) {
         memcpy(outBDA, buf + 4, 6);
@@ -44,7 +44,9 @@ int ds3ReadBDA(uint32_t handle, uint8_t* outBDA)
 
 int ds3WriteMasterBDA(uint32_t handle, uint8_t* bda)
 {
-    __attribute__ ((aligned (0x20))) uint8_t buf[8]{};
+    __attribute__ ((aligned (0x20))) uint8_t buf[8];
+    buf[0] = 0x01;
+    buf[1] = 0x00;
     memcpy(buf + 2, bda, 6);
     return HIDSetReport(handle, HID_REPORT_FEATURE, 0xf5, buf, sizeof(buf), nullptr, nullptr);
 }
