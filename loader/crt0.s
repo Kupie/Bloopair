@@ -5,6 +5,19 @@
 
 .global _start
 _start:
+#ifdef APPLOADER
+   stwu 1, -0x10(1)
+   mflr 0
+   stw 0, 0x14(1)
+   stw 3, 0x8(1)
+   stw 4, 0xC(1)
+   bl __init_wut
+   lwz 3, 0x8(1)
+   lwz 4, 0xC(1)
+   bl main
+   addi 1, 1, 0x10
+   b exit
+#else
    stwu 1, -0x28(1)
    mflr 0
    stw 0, 0x2C(1)
@@ -27,3 +40,4 @@ _start:
    lwz 31, -0x4(11)
    or 1, 11, 11
    blr
+#endif

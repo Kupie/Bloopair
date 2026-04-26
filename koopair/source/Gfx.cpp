@@ -60,7 +60,7 @@ FC_Font* GetFontForSize(int size)
         return font;
     }
 
-    if (!FC_LoadFont_RW(font, renderer, SDL_RWFromMem(fontData, fontSize), 1, size, Gfx::COLOR_BLACK, TTF_STYLE_NORMAL)) {
+    if (!FC_LoadFont_RW(font, renderer, SDL_RWFromConstMem(fontData, fontSize), 1, size, Gfx::COLOR_BLACK, TTF_STYLE_NORMAL)) {
         FC_FreeFont(font);
         return nullptr;
     }

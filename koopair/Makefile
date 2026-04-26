@@ -46,7 +46,7 @@ DRC_SPLASH	:=
 #-------------------------------------------------------------------------------
 # options for code generation
 #-------------------------------------------------------------------------------
-CFLAGS	:=	-Wall -O2 -ffunction-sections \
+CFLAGS	:=	-Wall -ffunction-sections \
 			$(MACHDEP)
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -DAPP_VERSION=\"$(APP_VERSION)\"
@@ -56,16 +56,18 @@ CXXFLAGS	:= $(CFLAGS) -std=gnu++20
 ASFLAGS	:=	$(ARCH)
 LDFLAGS	=	$(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:=	-lSDL2 -lSDL2_ttf -lSDL2_gfx -lSDL2_image -lfreetype -lharfbuzz -lfreetype -lpng -lbz2 -lz -lbloopair -lwut
+LIBS	:=	-lSDL2 -lSDL2_ttf -lSDL2_gfx -lSDL2_image -lfreetype -lbrotlidec \
+			-lbrotlicommon -lwebp -lharfbuzz -lfreetype -lpng -lbz2 -lz \
+			-lbloopair -lwut
 
 ifeq ($(DEBUG), 1)
-	CFLAGS += -g -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
-	CXXFLAGS += -g -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
+	CFLAGS += -g -Og -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
+	CXXFLAGS += -g -Og -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
 	ASFLAGS += -g
 	LDFLAGS += -g
 else
-	CFLAGS += -DNDEBUG
-	CXXFLAGS += -DNDEBUG
+	CFLAGS += -O2 -DNDEBUG
+	CXXFLAGS += -O2 -DNDEBUG
 endif
 
 #-------------------------------------------------------------------------------

@@ -37,6 +37,11 @@
 #include "ios_exploit.h"
 #include "kernel.hpp"
 
+#ifdef APPLOADER
+#include <whb/proc.h>
+#include <sysapp/launch.h>
+#endif
+
 int main(int argc, char **argv)
 {
     IOSHandle bloopairHandle = Bloopair_Open();
@@ -45,7 +50,9 @@ int main(int argc, char **argv)
     }
 
     if (!Bloopair_IsActive(bloopairHandle)) {
+#ifndef APPLOADER
         KernelSetup();
+#endif
 
         // nop out security level checks
         KernelWriteU32(((uint32_t) &OSDynLoad_GetRPLInfo) + (22 * 4), 0x60000000);
@@ -107,6 +114,14 @@ int main(int argc, char **argv)
     }
 
     Bloopair_Close(bloopairHandle);
+
+#ifdef APPLOADER
+    WHBProcInit();
+    SYSLaunchMenu();
+    while (WHBProcIsRunning())
+        ;
+    WHBProcShutdown();
+#endif
 
     return 0;
 }
