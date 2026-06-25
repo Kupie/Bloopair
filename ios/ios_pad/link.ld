@@ -2,6 +2,21 @@ OUTPUT_ARCH(arm)
 
 INCLUDE "imports.sym"
 
+EXTERN(
+    BTA_DmSearch_hook
+    _btrmCustomLibHook
+    bta_hh_api_disable
+    bta_hh_co_data
+    bta_hh_di_sdp_callback
+    bta_hh_event
+    bta_hh_open_act
+    bta_search_callback
+    bta_sec_callback
+    btm_sec_execute_procedure_hook
+    processSmdMessages
+    writeDevInfo_hook
+)
+
 SECTIONS {
     . = 0x11f86000;
 
