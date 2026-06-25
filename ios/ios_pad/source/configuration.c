@@ -24,6 +24,7 @@ void controllerModuleInit_xbox_one(void);
 void controllerModuleInit_dualsense(void);
 void controllerModuleInit_dualshock4(void);
 void controllerModuleInit_dualshock3(void);
+void controllerModuleInit_wiimote(void);
 
 static int configuration_initialized = 0;
 
@@ -47,6 +48,7 @@ int Configuration_Init(void)
     controllerModuleInit_dualsense();
     controllerModuleInit_dualshock4();
     controllerModuleInit_dualshock3();
+    controllerModuleInit_wiimote();
 
     return 0;
 }

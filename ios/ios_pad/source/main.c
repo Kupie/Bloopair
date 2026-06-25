@@ -19,10 +19,14 @@
 #include "wiimote_crypto.h"
 #include "controllers.h"
 #include "utils.h"
+#include "controllers/wiimote_controller.h"
 
 #define HH_SEND_DATA_OFFSET 0x29
 
 static const uint8_t wiiu_pro_controller_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x20 };
+
+// Stub extension ID placeholder; replace with the proper encrypted Nunchuk ID when Nunchuk data emulation is implemented.
+static const uint8_t nunchuk_extension_id[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // Motion Plus configuration dumped from a pro controller, unsure what for
 static const uint8_t wiiu_pro_controller_mpls_config[] = {
@@ -172,6 +176,18 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
     switch (address) {
     case 0x04a400fa: // extension
         if (len == 6) {
+            if (controller->type == BLOOPAIR_CONTROLLER_WIIMOTE) {
+                WiimoteData* wdata = (WiimoteData*) controller->wiimoteData;
+                switch (wdata ? wdata->extensionMode : WIIMOTE_EXTENSION_NONE) {
+                case WIIMOTE_EXTENSION_NONE:
+                    sendReadResponse(dev_handle, 8, address, NULL, 0);
+                    return;
+                case WIIMOTE_EXTENSION_NUNCHUK:
+                    // Nunchuk data reports are not implemented yet; this ID is a stub for future work.
+                    sendReadResponse(dev_handle, 0, address, nunchuk_extension_id, sizeof(nunchuk_extension_id));
+                    return;
+                }
+            }
             sendReadResponse(dev_handle, 0, address, wiiu_pro_controller_id, sizeof(wiiu_pro_controller_id));
             return;
         }

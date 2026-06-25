@@ -1,0 +1,23 @@
+{
+	"name": "Bloopair devkitPro",
+	"build": {
+		"dockerfile": "../Dockerfile",
+		"context": ".."
+	},
+	"workspaceFolder": "/workspace/Bloopair",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-vscode.makefile-tools"
+			]
+		}
+	},
+	"remoteEnv": {
+		"DEVKITPRO": "/opt/devkitpro",
+		"DEVKITPPC": "/opt/devkitpro/devkitPPC",
+		"DEVKITARM": "/opt/devkitpro/devkitARM",
+		"PATH": "/opt/devkitpro/tools/bin:/opt/devkitpro/devkitPPC/bin:/opt/devkitpro/devkitARM/bin:${containerEnv:PATH}"
+	},
+	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && make --version"
+}
