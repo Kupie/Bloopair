@@ -36,6 +36,8 @@ typedef enum {
     BLOOPAIR_CONTROLLER_SWITCH_N64,
 
     BLOOPAIR_CONTROLLER_XBOX_ONE             = 0x30,
+
+    BLOOPAIR_CONTROLLER_WIIMOTE              = 0x50,
 } BloopairControllerType;
 
 //! Bloopair Pro Controller buttons.
@@ -76,6 +78,10 @@ enum BloopairProButton {
     BLOOPAIR_PRO_BUTTON_STICK_R,
     //! The left stick button.
     BLOOPAIR_PRO_BUTTON_STICK_L,
+    //! The Wiimote 1 button.
+    BLOOPAIR_PRO_BUTTON_ONE,
+    //! The Wiimote 2 button.
+    BLOOPAIR_PRO_BUTTON_TWO,
 
     //! These aren't part of the button bitfield and only exist for mapping analog sticks
     BLOOPAIR_PRO_STICK_MIN = 32,

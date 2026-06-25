@@ -94,6 +94,8 @@ struct Controller {
     MappingConfiguration* mapping;
     // data that can be allocated for a controller feature
     void* additionalData;
+    // data that can be allocated for Wiimote emulation without clobbering physical controller state
+    void* wiimoteData;
     // Common configuration
     BloopairCommonConfiguration* commonConfig;
     // configuration data pointer for a specific controller type

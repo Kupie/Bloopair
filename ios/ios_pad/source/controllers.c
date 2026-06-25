@@ -18,6 +18,7 @@
 #include "controllers.h"
 #include "utils.h"
 #include "info_store.h"
+#include "controllers/wiimote_controller.h"
 
 #define WPAD_PRO_AXIS_BASE            0x800
 #define WPAD_PRO_AXIS_NORMALIZE_VALUE 1140
@@ -59,7 +60,11 @@ static int reportThread(void* arg)
                 if (controller->dataReportingMode == WM_REPORT_ID_EXTENSION_DATA_REPORT && 
                     controller->isReady) {
                     // send the current state
-                    sendControllerInput(controller);
+                    if (controller->type == BLOOPAIR_CONTROLLER_WIIMOTE) {
+                        controllerSendInput_wiimote(controller);
+                    } else {
+                        sendControllerInput(controller);
+                    }
                 }
             }
         }
@@ -124,6 +129,7 @@ void controllerInit_xbox_one(Controller* controller);
 void controllerInit_dualsense(Controller* controller);
 void controllerInit_dualshock4(Controller* controller);
 void controllerInit_dualshock3(Controller* controller);
+void controllerInit_wiimote(Controller* controller);
 
 int initController(uint8_t* bda, uint8_t handle)
 {
@@ -180,34 +186,46 @@ int initController(uint8_t* bda, uint8_t handle)
             info->magic = MAGIC_SWITCH;
 
             controllerInit_switch(controller);
-            return 0;
+            goto initialized;
         } else if ((vendor_id == 0x045e && product_id == 0x02e0) || // xbox one s controller
                    (vendor_id == 0x045e && product_id == 0x02fd) || // xbox one s controller
                    (vendor_id == 0x045e && product_id == 0x0b00) || // xbox one elite controller
                    (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
                    (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
             controllerInit_xbox_one(controller);
-            return 0;
+            goto initialized;
         } else if ((vendor_id == 0x054c && product_id == 0x0ce6) || // dualsense
                    (vendor_id == 0x054c && product_id == 0x0df2)) { // dualsense edge
             controllerInit_dualsense(controller);
-            return 0;
+            goto initialized;
         } else if ((vendor_id == 0x054c && product_id == 0x05c4) || // dualshock 4 v1
                    (vendor_id == 0x054c && product_id == 0x09cc) || // dualshock 4 v2
                    (vendor_id == 0x0f0d && product_id == 0x00f6) || // hori onyx
                    (vendor_id == 0x1532 && product_id == 0x100a) || // razer raiju tournament
                    (vendor_id == 0x146b && product_id == 0x0d01)) { // nacon ps4
             controllerInit_dualshock4(controller);
-            return 0;
+            goto initialized;
         } else if (vendor_id == 0x054c && product_id == 0x0268) { // dualshock 3
             controllerInit_dualshock3(controller);
-            return 0;
+            goto initialized;
         }
     } else if (magic == MAGIC_SWITCH) {
         controllerInit_switch(controller);
-        return 0;
+        goto initialized;
     }
 
+    goto unsupported;
+
+initialized:
+    {
+        ConfigurationEntry* bdaConfig = Configuration_GetForBDA(controller->bda, 0);
+        if (bdaConfig && bdaConfig->custom && bdaConfig->customSize == sizeof(WiimoteConfiguration)) {
+            controllerInit_wiimote(controller);
+        }
+    }
+    return 0;
+
+unsupported:
     // We don't support this device, close connection
     DEBUG_PRINT("unsupported device\n");
     controller->isInitialized = 0;
