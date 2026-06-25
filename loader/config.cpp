@@ -30,6 +30,7 @@
 #include <bloopair/controllers/dualshock4_controller.h>
 #include <bloopair/controllers/switch_controller.h>
 #include <bloopair/controllers/xbox_one_controller.h>
+#include <bloopair/controllers/wiimote_controller.h>
 #include <json/json.hpp>
 
 #define BLOOPAIR_CONFIGURATION_DIR "/vol/external01/wiiu/bloopair/"
@@ -56,7 +57,11 @@ static const std::map<std::string, uint32_t> bloopairButtonNameValues = {
     { "down",       BLOOPAIR_PRO_BUTTON_DOWN },
     { "right",      BLOOPAIR_PRO_BUTTON_RIGHT },
     { "rstick",     BLOOPAIR_PRO_BUTTON_STICK_R },
+    { "stick_r",    BLOOPAIR_PRO_BUTTON_STICK_R },
     { "lstick",     BLOOPAIR_PRO_BUTTON_STICK_L },
+    { "stick_l",    BLOOPAIR_PRO_BUTTON_STICK_L },
+    { "1",          BLOOPAIR_PRO_BUTTON_ONE },
+    { "2",          BLOOPAIR_PRO_BUTTON_TWO },
     { "lup",        BLOOPAIR_PRO_STICK_L_UP },
     { "ldown",      BLOOPAIR_PRO_STICK_L_DOWN },
     { "lleft",      BLOOPAIR_PRO_STICK_L_LEFT },
@@ -78,6 +83,8 @@ static const std::map<std::string, BloopairControllerType> bloopairControllerTyp
     { "Switch-Pro",             BLOOPAIR_CONTROLLER_SWITCH_PRO },
     { "Switch-N64",             BLOOPAIR_CONTROLLER_SWITCH_N64 },
     { "Xbox-One",               BLOOPAIR_CONTROLLER_XBOX_ONE },
+    { "Wiimote",                BLOOPAIR_CONTROLLER_WIIMOTE },
+    { "wiimote",                BLOOPAIR_CONTROLLER_WIIMOTE },
 };
 
 static bool LoadCommonConfiguration(const nlohmann::json& common, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
@@ -184,6 +191,55 @@ static bool LoadSwitchCustomConfiguration(const nlohmann::json& custom, IOSHandl
     return true;
 }
 
+
+static bool LoadWiimoteCustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
+{
+    WiimoteConfiguration config;
+    uint32_t configSize = sizeof(config);
+    if (Bloopair_GetDefaultCustomConfiguration(handle, type, &config, &configSize) < 0) {
+        return false;
+    }
+
+    if (custom.contains("extensionMode")) {
+        std::string extensionMode = custom["extensionMode"].get<std::string>();
+        if (extensionMode == "none") {
+            config.extensionMode = WIIMOTE_EXTENSION_NONE;
+        } else if (extensionMode == "nunchuk") {
+            config.extensionMode = WIIMOTE_EXTENSION_NUNCHUK;
+        } else {
+            OSReport("Bloopair Loader: Unknown Wiimote extension mode %s\n", extensionMode.c_str());
+            return false;
+        }
+    }
+
+    if (custom.contains("irToggleButton")) {
+        std::string button = custom["irToggleButton"].get<std::string>();
+        if (!bloopairButtonNameValues.contains(button)) {
+            OSReport("Bloopair Loader: Unknown Wiimote IR toggle button %s\n", button.c_str());
+            return false;
+        }
+        config.irToggleButton = bloopairButtonNameValues.at(button);
+    }
+
+    if (custom.contains("irVelocity")) {
+        config.irVelocity = custom["irVelocity"].get<uint8_t>();
+    }
+
+    IOSError error;
+    if (bda) {
+        error = Bloopair_ApplyCustomConfigurationForBDA(handle, bda, &config, sizeof(config));
+    } else {
+        error = Bloopair_ApplyCustomConfigurationForControllerType(handle, type, &config, sizeof(config));
+    }
+
+    if (error < 0) {
+        OSReport("Bloopair Loader: ApplyCustomConfiguration failed %x\n", error);
+        return false;
+    }
+
+    return true;
+}
+
 static bool LoadXboxOneCustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
 {
     return true;
@@ -207,6 +263,8 @@ static bool LoadCustomConfiguration(const nlohmann::json& custom, IOSHandle hand
             return LoadSwitchCustomConfiguration(custom, handle, type, bda);
         case BLOOPAIR_CONTROLLER_XBOX_ONE:
             return LoadXboxOneCustomConfiguration(custom, handle, type, bda);
+        case BLOOPAIR_CONTROLLER_WIIMOTE:
+            return LoadWiimoteCustomConfiguration(custom, handle, type, bda);
         default: break;
     }
 

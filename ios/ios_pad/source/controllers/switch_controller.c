@@ -463,10 +463,12 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         DEBUG_PRINT("device type 0x%x\n", sdata->device);
 
         // Get the configuration again, now that we have the actual device type
-        controller->type = switchDeviceToControllerType(sdata->device);
-        Configuration_GetAll(controller->type, controller->bda,
-            &controller->commonConfig, &controller->mapping,
-            &controller->customConfig, &controller->customConfigSize);
+        if (controller->type != BLOOPAIR_CONTROLLER_WIIMOTE) {
+            controller->type = switchDeviceToControllerType(sdata->device);
+            Configuration_GetAll(controller->type, controller->bda,
+                &controller->commonConfig, &controller->mapping,
+                &controller->customConfig, &controller->customConfigSize);
+        }
 
         // set the leds now that we know the device type
         setPlayerLeds(controller);
