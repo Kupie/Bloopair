@@ -417,6 +417,51 @@ IOSError Bloopair_GetCustomConfiguration(IOSHandle handle, WPADChan chan, void* 
  */
 IOSError Bloopair_GetDefaultCustomConfiguration(IOSHandle handle, BloopairControllerType controllerType, void* outCustom, uint32_t* outSize);
 
+/**
+ * Enable or disable Wiimote emulation mode for the specified BDA.
+ *
+ * When enabled, the controller with this BDA will report itself to padscore
+ * as a bare Wiimote instead of a Wii U Pro Controller.
+ *
+ * \warning
+ * If the controller is currently connected it needs to be disconnected first.
+ * Keeping the controller connected results in undefined behaviour.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param bda
+ * A pointer to a 6-byte bluetooth device address to enable Wiimote mode for.
+ *
+ * \param enabled
+ * \c TRUE to enable Wiimote emulation, \c FALSE to disable it.
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_SetWiimoteModeForBDA(IOSHandle handle, const uint8_t* bda, BOOL enabled);
+
+/**
+ * Enable or disable Wiimote emulation mode for all controllers of the specified controller type.
+ *
+ * \warning
+ * If any controllers of this type are currently connected they needs to be disconnected first.
+ * Keeping the controllers connected results in undefined behaviour.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param controllerType
+ * The controller type to enable Wiimote mode for.
+ *
+ * \param enabled
+ * \c TRUE to enable Wiimote emulation, \c FALSE to disable it.
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_SetWiimoteModeForControllerType(IOSHandle handle, BloopairControllerType controllerType, BOOL enabled);
+
 #ifdef __cplusplus
 }
 #endif

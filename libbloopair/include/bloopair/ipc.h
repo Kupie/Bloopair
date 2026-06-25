@@ -33,6 +33,7 @@
 #define BLOOPAIR_FUNC_GET_CONTROLLER_CONFIG         9
 #define BLOOPAIR_FUNC_GET_CONTROLLER_MAPPING        10
 #define BLOOPAIR_FUNC_GET_CUSTOM_CONFIGURATION      11
+#define BLOOPAIR_FUNC_SET_WIIMOTE_MODE              12
 
 #define BLOOPAIR_VERSION_MAJOR(v) (((v) >> 16) & 0xff)
 #define BLOOPAIR_VERSION_MINOR(v) (((v) >> 8) & 0xff)
@@ -88,3 +89,10 @@ typedef struct {
     uint32_t dataSize;
     uint8_t data[];
 } BloopairApplyControllerConfigurationData;
+
+// structure associated with BLOOPAIR_FUNC_SET_WIIMOTE_MODE
+typedef struct {
+    uint8_t controllerType;
+    uint8_t bd_address[6];
+    uint8_t enabled;
+} BloopairSetWiimoteModeData;

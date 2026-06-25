@@ -24,6 +24,7 @@ void controllerModuleInit_xbox_one(void);
 void controllerModuleInit_dualsense(void);
 void controllerModuleInit_dualshock4(void);
 void controllerModuleInit_dualshock3(void);
+void controllerModuleInit_wiimote(void);
 
 static int configuration_initialized = 0;
 
@@ -47,6 +48,7 @@ int Configuration_Init(void)
     controllerModuleInit_dualsense();
     controllerModuleInit_dualshock4();
     controllerModuleInit_dualshock3();
+    controllerModuleInit_wiimote();
 
     return 0;
 }
@@ -265,4 +267,37 @@ void Configuration_SetFallback(BloopairControllerType type, const BloopairCommon
         entry->custom = (void*) custom;
         entry->customSize = customSize;
     }
+}
+
+void Configuration_SetWiimoteMode(BloopairControllerType type, uint8_t* bda, uint8_t enabled)
+{
+    ConfigurationEntry* entry;
+    if (bda) {
+        entry = Configuration_GetForBDA(bda, 1);
+    } else {
+        entry = Configuration_GetForControllerType(type, 1);
+    }
+
+    if (entry) {
+        entry->wiimoteModeEnabled = enabled;
+    }
+}
+
+uint8_t Configuration_GetWiimoteMode(BloopairControllerType type, uint8_t* bda)
+{
+    ConfigurationEntry* entry;
+
+    if (bda) {
+        entry = Configuration_GetForBDA(bda, 0);
+        if (entry && entry->wiimoteModeEnabled) {
+            return 1;
+        }
+    }
+
+    entry = Configuration_GetForControllerType(type, 0);
+    if (entry && entry->wiimoteModeEnabled) {
+        return 1;
+    }
+
+    return 0;
 }

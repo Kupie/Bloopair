@@ -30,6 +30,7 @@
 #include <bloopair/controllers/dualshock4_controller.h>
 #include <bloopair/controllers/switch_controller.h>
 #include <bloopair/controllers/xbox_one_controller.h>
+#include <bloopair/controllers/wiimote_controller.h>
 #include <json/json.hpp>
 
 #define BLOOPAIR_CONFIGURATION_DIR "/vol/external01/wiiu/bloopair/"
@@ -78,6 +79,23 @@ static const std::map<std::string, BloopairControllerType> bloopairControllerTyp
     { "Switch-Pro",             BLOOPAIR_CONTROLLER_SWITCH_PRO },
     { "Switch-N64",             BLOOPAIR_CONTROLLER_SWITCH_N64 },
     { "Xbox-One",               BLOOPAIR_CONTROLLER_XBOX_ONE },
+    { "Wiimote",                BLOOPAIR_CONTROLLER_WIIMOTE },
+};
+
+// Names for the emulated Wiimote's core buttons, used as the "to" side of a
+// Wiimote mapping entry. See WiimoteButton in bloopair/controllers/wiimote_controller.h.
+static const std::map<std::string, uint8_t> wiimoteButtonNameValues = {
+    { "two",    WIIMOTE_BUTTON_TWO },
+    { "one",    WIIMOTE_BUTTON_ONE },
+    { "b",      WIIMOTE_BUTTON_B },
+    { "a",      WIIMOTE_BUTTON_A },
+    { "minus",  WIIMOTE_BUTTON_MINUS },
+    { "home",   WIIMOTE_BUTTON_HOME },
+    { "left",   WIIMOTE_BUTTON_LEFT },
+    { "right",  WIIMOTE_BUTTON_RIGHT },
+    { "down",   WIIMOTE_BUTTON_DOWN },
+    { "up",     WIIMOTE_BUTTON_UP },
+    { "plus",   WIIMOTE_BUTTON_PLUS },
 };
 
 static bool LoadCommonConfiguration(const nlohmann::json& common, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
@@ -121,6 +139,46 @@ static bool LoadControllerMapping(const nlohmann::json& mapping, IOSHandle handl
         uint8_t button = bloopairButtonNameValues.at(key);
         for (const auto& ent : val) {
             mappings.push_back(BloopairMappingEntry{ent.get<uint8_t>(), button});
+        }
+    }
+
+    IOSError error;
+    if (bda) {
+        error = Bloopair_ApplyControllerMappingForBDA(handle, bda, mappings.data(), mappings.size());
+    } else {
+        error = Bloopair_ApplyControllerMappingForControllerType(handle, type, mappings.data(), mappings.size());
+    }
+
+    if (error < 0) {
+        OSReport("Bloopair Loader: ApplyControllerMapping failed %x\n", error);
+        return false;
+    }
+
+    return true;
+}
+
+// Wiimote emulation's stage-2 mapping (Pro Controller buttons -> emulated
+// Wiimote buttons) is the inverse shape of LoadControllerMapping()'s JSON:
+// keys are Wiimote button names, values are lists of Pro Controller button
+// names (not raw hardware bit positions), so it needs its own loader.
+static bool LoadWiimoteMapping(const nlohmann::json& mapping, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
+{
+    std::vector<BloopairMappingEntry> mappings;
+    for (const auto& [key, val] : mapping.items()) {
+        if (!wiimoteButtonNameValues.contains(key)) {
+            OSReport("Bloopair Loader: Ignoring unknown wiimote button %s\n", key.c_str());
+            continue;
+        }
+
+        uint8_t wiimoteButton = wiimoteButtonNameValues.at(key);
+        for (const auto& ent : val) {
+            std::string proButtonName = ent.get<std::string>();
+            if (!bloopairButtonNameValues.contains(proButtonName)) {
+                OSReport("Bloopair Loader: Ignoring unknown button %s\n", proButtonName.c_str());
+                continue;
+            }
+
+            mappings.push_back(BloopairMappingEntry{(uint8_t) bloopairButtonNameValues.at(proButtonName), wiimoteButton});
         }
     }
 
@@ -189,6 +247,50 @@ static bool LoadXboxOneCustomConfiguration(const nlohmann::json& custom, IOSHand
     return true;
 }
 
+static bool LoadWiimoteCustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
+{
+    // Start by getting the default configuration
+    WiimoteConfiguration config;
+    uint32_t configSize = sizeof(config);
+    if (Bloopair_GetDefaultCustomConfiguration(handle, type, &config, &configSize) < 0) {
+        return false;
+    }
+
+    // Overwrite fields from the config
+    if (custom.contains("extensionMode")) {
+        std::string mode = custom["extensionMode"].get<std::string>();
+        config.extensionMode = (mode == "nunchuk") ? WIIMOTE_EXTENSION_NUNCHUK : WIIMOTE_EXTENSION_NONE;
+    }
+
+    if (custom.contains("irToggleButton")) {
+        std::string name = custom["irToggleButton"].get<std::string>();
+        if (bloopairButtonNameValues.contains(name)) {
+            config.irToggleButton = bloopairButtonNameValues.at(name);
+        } else {
+            OSReport("Bloopair Loader: Ignoring unknown button %s\n", name.c_str());
+        }
+    }
+
+    if (custom.contains("irVelocity")) {
+        config.irVelocity = custom["irVelocity"];
+    }
+
+    // Apply configuration
+    IOSError error;
+    if (bda) {
+        error = Bloopair_ApplyCustomConfigurationForBDA(handle, bda, &config, sizeof(config));
+    } else {
+        error = Bloopair_ApplyCustomConfigurationForControllerType(handle, type, &config, sizeof(config));
+    }
+
+    if (error < 0) {
+        OSReport("Bloopair Loader: ApplyCustomConfiguration failed %x\n", error);
+        return false;
+    }
+
+    return true;
+}
+
 static bool LoadCustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
 {
     switch (type) {
@@ -207,6 +309,8 @@ static bool LoadCustomConfiguration(const nlohmann::json& custom, IOSHandle hand
             return LoadSwitchCustomConfiguration(custom, handle, type, bda);
         case BLOOPAIR_CONTROLLER_XBOX_ONE:
             return LoadXboxOneCustomConfiguration(custom, handle, type, bda);
+        case BLOOPAIR_CONTROLLER_WIIMOTE:
+            return LoadWiimoteCustomConfiguration(custom, handle, type, bda);
         default: break;
     }
 
@@ -256,7 +360,10 @@ static bool LoadAndApplySingleConfiguration(const std::filesystem::path& path, B
     }
 
     if (config.contains("mapping")) {
-        if (!LoadControllerMapping(config["mapping"], handle, controllerType, bda)) {
+        bool ok = (controllerType == BLOOPAIR_CONTROLLER_WIIMOTE)
+            ? LoadWiimoteMapping(config["mapping"], handle, controllerType, bda)
+            : LoadControllerMapping(config["mapping"], handle, controllerType, bda);
+        if (!ok) {
             OSReport("Bloopair Loader: Failed to load controller mapping\n");
         }
     }
@@ -264,6 +371,26 @@ static bool LoadAndApplySingleConfiguration(const std::filesystem::path& path, B
     if (config.contains("custom")) {
         if (!LoadCustomConfiguration(config["custom"], handle, controllerType, bda)) {
             OSReport("Bloopair Loader: Failed to load custom configuration\n");
+        }
+    }
+
+    // Toggles whether this controller (matched by BDA, or by controller type
+    // if this isn't a per-BDA config file) should emulate a bare Wiimote
+    // instead of a Wii U Pro Controller. Only meaningful on configs that
+    // describe a real hardware controller, not on Controller-Wiimote.conf
+    // itself, which instead configures the emulated Wiimote's own settings.
+    if (config.contains("wiimoteMode")) {
+        bool enabled = config["wiimoteMode"].get<bool>();
+
+        IOSError error;
+        if (bda) {
+            error = Bloopair_SetWiimoteModeForBDA(handle, bda, enabled);
+        } else {
+            error = Bloopair_SetWiimoteModeForControllerType(handle, controllerType, enabled);
+        }
+
+        if (error < 0) {
+            OSReport("Bloopair Loader: SetWiimoteMode failed %x\n", error);
         }
     }
 

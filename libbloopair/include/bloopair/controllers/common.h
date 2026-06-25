@@ -36,6 +36,8 @@ typedef enum {
     BLOOPAIR_CONTROLLER_SWITCH_N64,
 
     BLOOPAIR_CONTROLLER_XBOX_ONE             = 0x30,
+
+    BLOOPAIR_CONTROLLER_WIIMOTE              = 0x50,
 } BloopairControllerType;
 
 //! Bloopair Pro Controller buttons.
