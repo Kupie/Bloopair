@@ -18,16 +18,20 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build devkitPro Docker image
-        run: docker build -t bloopair-devkitpro .
-
       - name: Build dist
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/workspace/Bloopair" \
             -w /workspace/Bloopair \
-            bloopair-devkitpro \
-            sh -lc 'git config --global --add safe.directory /workspace/Bloopair && make dist'
+            devkitpro/devkitppc:20260221 \
+            sh -lc '
+              git config --global --add safe.directory /workspace/Bloopair
+              export DEVKITPRO=/opt/devkitpro
+              export DEVKITPPC=/opt/devkitpro/devkitPPC
+              export DEVKITARM=/opt/devkitpro/devkitARM
+              export PATH=/opt/devkitpro/tools/bin:/opt/devkitpro/devkitPPC/bin:/opt/devkitpro/devkitARM/bin:$PATH
+              make dist
+            '
 
       - name: List dist output
         run: find dist -maxdepth 5 -type f -print
