@@ -17,6 +17,7 @@ endif
 
 include $(DEVKITARM)/base_rules
 export OBJDUMP := $(PREFIX)objdump
+export SIZE := $(PREFIX)size
 
 MACHDEP = -DSTARBUCK -mbig-endian -mcpu=arm926ej-s -msoft-float -mfloat-abi=soft
 
@@ -43,7 +44,8 @@ INCLUDES	:= source
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds -fno-builtin
+CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds -fno-builtin \
+	-ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
@@ -57,6 +59,7 @@ LDFLAGS := -nostartfiles -nodefaultlibs -mbig-endian \
 	-Wl,-L $(TOPDIR) \
 	-Wl,-Map,$(notdir $*.map) \
 	-Wl,-T $(TOPDIR)/link.ld \
+	-Wl,--gc-sections \
 	-Wl,--no-warn-rwx-segments
 
 LIBS	:= -lgcc
@@ -125,6 +128,7 @@ DEPENDS := $(OFILES:.o=.d)
 all	:	$(OUTPUT).bin.h $(OUTPUT)_syms.h
 
 $(OUTPUT).elf	:	$(OFILES)
+	@$(SIZE) -A $@
 
 $(OUTPUT).bin: $(OUTPUT).elf
 	@echo "built ... $(notdir $@)"
