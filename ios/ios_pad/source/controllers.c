@@ -18,6 +18,7 @@
 #include "controllers.h"
 #include "utils.h"
 #include "info_store.h"
+#include "controllers/wiimote_controller.h"
 
 #define WPAD_PRO_AXIS_BASE            0x800
 #define WPAD_PRO_AXIS_NORMALIZE_VALUE 1140
@@ -55,10 +56,15 @@ static int reportThread(void* arg)
                     controller->update(controller);
                 }
 
-                // make sure the controller has the reporting mode set and is ready to send data
-                if (controller->dataReportingMode == WM_REPORT_ID_EXTENSION_DATA_REPORT && 
-                    controller->isReady) {
-                    // send the current state
+                if (controller->wiimoteData) {
+                    // emulated Wiimotes use their own report path, entirely
+                    // separate from the Pro Controller's reporting mode check
+                    if (controller->isReady) {
+                        controllerSendInput_wiimote(controller);
+                    }
+                } else if (controller->dataReportingMode == WM_REPORT_ID_EXTENSION_DATA_REPORT &&
+                           controller->isReady) {
+                    // make sure the controller has the reporting mode set and is ready to send data
                     sendControllerInput(controller);
                 }
             }
@@ -180,6 +186,7 @@ int initController(uint8_t* bda, uint8_t handle)
             info->magic = MAGIC_SWITCH;
 
             controllerInit_switch(controller);
+            Controller_ApplyWiimoteModeIfEnabled(controller);
             return 0;
         } else if ((vendor_id == 0x045e && product_id == 0x02e0) || // xbox one s controller
                    (vendor_id == 0x045e && product_id == 0x02fd) || // xbox one s controller
@@ -187,10 +194,12 @@ int initController(uint8_t* bda, uint8_t handle)
                    (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
                    (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
             controllerInit_xbox_one(controller);
+            Controller_ApplyWiimoteModeIfEnabled(controller);
             return 0;
         } else if ((vendor_id == 0x054c && product_id == 0x0ce6) || // dualsense
                    (vendor_id == 0x054c && product_id == 0x0df2)) { // dualsense edge
             controllerInit_dualsense(controller);
+            Controller_ApplyWiimoteModeIfEnabled(controller);
             return 0;
         } else if ((vendor_id == 0x054c && product_id == 0x05c4) || // dualshock 4 v1
                    (vendor_id == 0x054c && product_id == 0x09cc) || // dualshock 4 v2
@@ -198,13 +207,16 @@ int initController(uint8_t* bda, uint8_t handle)
                    (vendor_id == 0x1532 && product_id == 0x100a) || // razer raiju tournament
                    (vendor_id == 0x146b && product_id == 0x0d01)) { // nacon ps4
             controllerInit_dualshock4(controller);
+            Controller_ApplyWiimoteModeIfEnabled(controller);
             return 0;
         } else if (vendor_id == 0x054c && product_id == 0x0268) { // dualshock 3
             controllerInit_dualshock3(controller);
+            Controller_ApplyWiimoteModeIfEnabled(controller);
             return 0;
         }
     } else if (magic == MAGIC_SWITCH) {
         controllerInit_switch(controller);
+        Controller_ApplyWiimoteModeIfEnabled(controller);
         return 0;
     }
 

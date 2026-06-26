@@ -327,6 +327,21 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         return customSize;
     }
 
+    case BLOOPAIR_FUNC_SET_WIIMOTE_MODE: {
+        DEBUG_PRINT("BLOOPAIR_FUNC_SET_WIIMOTE_MODE\n");
+
+        BloopairSetWiimoteModeData* data = (BloopairSetWiimoteModeData*) request->data;
+
+        uint8_t* bda = NULL;
+        if (data->controllerType == BLOOPAIR_CONTROLLER_INVALID) {
+            bda = data->bd_address;
+        }
+
+        Configuration_SetWiimoteMode((BloopairControllerType) data->controllerType, bda, data->enabled);
+
+        return 0;
+    }
+
     }
 
     return -4;

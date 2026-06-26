@@ -36,6 +36,11 @@ typedef struct ConfigurationEntry {
     MappingConfiguration* mapping;
     void* custom;
     uint32_t customSize;
+
+    // Whether controllers matched by this entry should emulate a bare Wiimote
+    // instead of a Wii U Pro Controller. Kept separate from the fields above
+    // so it doesn't collide with the underlying controller type's own configuration.
+    uint8_t wiimoteModeEnabled;
 } ConfigurationEntry;
 
 int Configuration_Init(void);
@@ -57,3 +62,7 @@ void* Configuration_GetCustom(BloopairControllerType type, uint8_t* bda, uint32_
 int Configuration_GetAll(BloopairControllerType type, uint8_t* bda, BloopairCommonConfiguration** outCommon, MappingConfiguration** outMapping, void** outCustom, uint32_t* outCustomSize);
 
 void Configuration_SetFallback(BloopairControllerType type, const BloopairCommonConfiguration* common, const MappingConfiguration* mapping, const void* custom, uint32_t customSize);
+
+void Configuration_SetWiimoteMode(BloopairControllerType type, uint8_t* bda, uint8_t enabled);
+
+uint8_t Configuration_GetWiimoteMode(BloopairControllerType type, uint8_t* bda);

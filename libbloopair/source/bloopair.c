@@ -483,3 +483,44 @@ IOSError Bloopair_GetDefaultCustomConfiguration(IOSHandle handle, BloopairContro
 
     return _Bloopair_GetCustomConfiguration(handle, controllerType, WPAD_CHAN_0, outCustom, outSize);
 }
+
+static IOSError _Bloopair_SetWiimoteMode(IOSHandle handle, BloopairControllerType controllerType, const uint8_t* bda, BOOL enabled)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_SET_WIIMOTE_MODE);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairSetWiimoteModeData* data = (BloopairSetWiimoteModeData*) ioctlv->request.data;
+    data->controllerType = controllerType;
+    if (bda) {
+        memcpy(data->bd_address, bda, 6);
+    } else {
+        memset(data->bd_address, 0, 6);
+    }
+    data->enabled = enabled ? 1 : 0;
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_SetWiimoteModeForBDA(IOSHandle handle, const uint8_t* bda, BOOL enabled)
+{
+    if (!bda) {
+        return IOS_ERROR_INVALIDARG;
+    }
+
+    return _Bloopair_SetWiimoteMode(handle, BLOOPAIR_CONTROLLER_INVALID, bda, enabled);
+}
+
+IOSError Bloopair_SetWiimoteModeForControllerType(IOSHandle handle, BloopairControllerType controllerType, BOOL enabled)
+{
+    if (controllerType == BLOOPAIR_CONTROLLER_INVALID) {
+        return IOS_ERROR_INVALIDARG;
+    }
+
+    return _Bloopair_SetWiimoteMode(handle, controllerType, NULL, enabled);
+}

@@ -100,6 +100,9 @@ struct Controller {
     void* customConfig;
     // size of custom config for IPC passing
     uint32_t customConfigSize;
+    // data allocated for Wiimote emulation mode, kept separate from
+    // additionalData so it never clobbers the underlying hardware module's state
+    void* wiimoteData;
 };
 
 extern Controller controllers[BTA_HH_MAX_KNOWN];
